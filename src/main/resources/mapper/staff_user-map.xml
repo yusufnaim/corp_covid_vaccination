@@ -1,0 +1,75 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yusuf.covid.vaccine.backendservice.db.mapper.StaffUserMapper">
+
+    <resultMap id="StaffUserVO" type="com.yusuf.covid.vaccine.backendservice.db.vo.StaffUserVO">
+        <result column="uuid" property="uuid"/>
+        <result column="name" property="name"/>
+        <result column="nric" property="nric"/>
+        <result column="staff_id" property="staffId"/>
+        <result column="id_pos_level" property="idPosLevel"/>
+        <result column="id_department" property="idDepartment"/>
+        <result column="created_dt" property="createdDt"/>
+        <result column="updated_dt" property="updatedDt"/>
+
+        <!-- join -->
+        <result column="pos_level_name" property="posLevelName"/>
+        <result column="department_name" property="departmentName"/>
+        <result column="business_group_name" property="businessGroupName"/>
+        <result column="vaccine_name" property="vaccineName"/>
+        <result column="first_dose" property="vaccineFirstDose"/>
+        <result column="second_dose" property="vaccineSecondDose"/>
+    </resultMap>
+
+    <sql id="columnInsert">name, nric, staff_id, id_pos_level, id_business_group, id_department, created_dt, updated_dt</sql>
+    <sql id="columnSelect">uuid, <include refid="columnInsert"/></sql>
+
+    <sql id="table">staff_user</sql>
+
+    <sql id="whereFilter">
+        <where>
+            <if test="null != uuid">
+                AND uuid = #{uuid, jdbcType=INTEGER}
+            </if>
+            <if test="null != nric and nric != ''">
+                AND nric = #{nric, jdbcType=VARCHAR}
+            </if>
+        </where>
+    </sql>
+
+    <sql id="orderBy">
+        ORDER BY
+        <if test="orderBy != null and sortOrder != null">
+            <if test="orderBy == 'createdDt'">
+                created_dt ${sortOrder}
+            </if>
+            <if test="orderBy == 'updatedDt'">
+                updated_dt ${sortOrder}
+            </if>
+        </if>
+        <if test="orderBy == null or sortOrder == null">
+            created_dt DESC
+        </if>
+    </sql>
+
+    <select id="selectOneFullInformation" parameterType="map" resultMap="StaffUserVO">
+        select su.uuid as uuid, su.name as name, su.nric as nric, su.staff_id as staff_id, pl.plname as pos_level_name,
+        dep.depname as department_name, bg.bgname as business_group_name, vac.name as vaccine_name,
+        vaccination.first_dose as vaccine_first_dose, vaccination.second_dose as vaccine_second_dose
+        from staff_user su
+        left join (select uuid as pluuid, name as plname from pos_level) pl on pl.pluuid = su.id_pos_level
+        left join (select uuid as depuuid, id_business_group, name as depname from department) dep on dep.depuuid = su.id_department
+        left join (select uuid as bguuid, name as bgname from business_group) bg on bg.bguuid = dep.id_business_group
+        left join (select id_staff_user, id_vaccine, first_dose, second_dose from vaccination) vaccination on vaccination.id_staff_user = su.uuid
+        left join (select uuid as vacuuid, name from vaccine) vac on vac.vacuuid = vaccination.id_vaccine
+        <where>
+            <if test="null != nric and nric != ''">
+                AND nric = #{nric, jdbcType = INTEGER}
+            </if>
+        </where>
+        LIMIT 1
+    </select>
+
+</mapper>
